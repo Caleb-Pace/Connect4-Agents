@@ -16,11 +16,13 @@ agent2 = HeuristicAgent()
 while not g.get_has_finished():
     chosen_col = agent1.move(g.get_grid())
     if not g.try_drop_disc(chosen_col):
-        raise Exception("Invalid disc drop")
+        if not g.get_has_finished():
+            raise Exception("Invalid disc drop")
 
     chosen_col = agent2.move(g.get_grid())
     if not g.try_drop_disc(chosen_col):
-        raise Exception("Invalid disc drop")
+        if not g.get_has_finished():
+            raise Exception("Invalid disc drop")
 
     g.print_grid(True)
     time.sleep(0.1)
