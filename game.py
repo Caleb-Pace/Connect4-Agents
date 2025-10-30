@@ -9,7 +9,7 @@ class Game:
         self.grid = np.zeros((COL_COUNT, ROW_COUNT), dtype=int)
         self.current_player = 1
 
-        self.round = 0
+        self.round = 1
         self.is_game_over = False
 
     def get_has_finished(self) -> bool:
