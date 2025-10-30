@@ -1,15 +1,26 @@
-import time, random
+import time
 from game import Game
+from agents.heuristic_agent import HeuristicAgent
 
 print("\nConnect 4 with Agents:")
 
 # Create game
-demo_game = Game()
-demo_game.print_grid()
+g = Game()
+g.print_grid()
+
+# Create agents
+agent1 = HeuristicAgent()
+agent2 = HeuristicAgent()
 
 # Run game
-while not demo_game.get_has_finished():
-    demo_game.try_drop_disc(random.randint(0, 6))
+while not g.get_has_finished():
+    chosen_col = agent1.move(g.get_grid())
+    if not g.try_drop_disc(chosen_col):
+        raise Exception("Invalid disc drop")
 
-    demo_game.print_grid(True)
+    chosen_col = agent2.move(g.get_grid())
+    if not g.try_drop_disc(chosen_col):
+        raise Exception("Invalid disc drop")
+
+    g.print_grid(True)
     time.sleep(0.1)
