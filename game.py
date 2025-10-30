@@ -9,6 +9,7 @@ class Game:
         self.grid = np.zeros((COL_COUNT, ROW_COUNT), dtype=int)
         self.current_player = 1
 
+        self.round = 0
         self.is_game_over = False
 
     def get_has_finished(self) -> bool:
@@ -16,6 +17,9 @@ class Game:
 
     def get_grid(self) -> np.ndarray:
         return self.grid
+
+    def get_round(self) -> int:
+        return self.round
 
     def print_grid(self, redraw: bool = False):
         symbols = {
@@ -43,7 +47,7 @@ class Game:
 
         # Winner
         if self.is_game_over:
-            print(f"Player {self.current_player} won")
+            print(f"Player {self.current_player} won (in {self.round} rounds)")
 
     def try_drop_disc(self, col_num: int) -> bool:
         """Attempt to drop disc; Returns True if sucessful."""
@@ -104,6 +108,7 @@ class Game:
             self.current_player = 2
         else:
             self.current_player = 1
+            self.round += 1
 
     def is_valid_location(self, col_num: int) -> bool:
         """Returns True if the column is not full."""
