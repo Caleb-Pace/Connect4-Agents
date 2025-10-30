@@ -14,6 +14,9 @@ class Game:
     def get_has_finished(self) -> bool:
         return self.is_game_over
 
+    def get_grid(self) -> np.ndarray:
+        return self.grid
+
     def print_grid(self, redraw: bool = False):
         symbols = {
             0: ".",
