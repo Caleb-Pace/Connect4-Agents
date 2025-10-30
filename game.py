@@ -11,6 +11,9 @@ class Game:
 
         self.is_game_over = False
 
+    def get_has_finished(self) -> bool:
+        return self.is_game_over
+
     def print_grid(self, redraw: bool = False):
         symbols = {
             0: ".",
@@ -35,10 +38,17 @@ class Game:
         # Print footer
         print("~~" + ('-'.join('-' * COL_COUNT)) + "~~")
 
+        # Winner
+        if self.is_game_over:
+            print(f"Player {self.current_player} won")
+
     def try_drop_disc(self, col_num: int) -> bool:
         """Attempt to drop disc; Returns True if sucessful."""
+        if self.is_game_over:
+            return False # Game has finished
+
         if not self.is_valid_location(col_num):
-            return False
+            return False # Column is full
 
         self.__drop_disc(col_num)
         return True        
@@ -53,7 +63,34 @@ class Game:
 
         # Place disc
         self.grid[col_num][r] = self.current_player
-        self.__next_player()
+        self.__check_win()
+        if not self.is_game_over:
+            self.__next_player()
+
+    def __check_win(self):
+        # Horizontal check
+        for r in range(ROW_COUNT):
+            for c in range(COL_COUNT - 3):
+                if all(self.grid[c + i][r] == self.current_player for i in range(4)):
+                    self.is_game_over = True
+
+        # Vertical check
+        for c in range(COL_COUNT):
+            for r in range(ROW_COUNT - 3):
+                if all(self.grid[c][r + i] == self.current_player for i in range(4)):
+                    self.is_game_over = True
+
+        # Positive diagonal check (/)
+        for r in range(3, ROW_COUNT):
+            for c in range(COL_COUNT - 3):
+                if all(self.grid[c + i][r - i] == self.current_player for i in range(4)):
+                    self.is_game_over = True
+
+        # Negative diagonal check (\)
+        for r in range(ROW_COUNT - 3):
+            for c in range(COL_COUNT - 3):
+                if all(self.grid[c + i][r + i] == self.current_player for i in range(4)):
+                    self.is_game_over = True
 
     def __next_player(self):
         if self.current_player == 1:
