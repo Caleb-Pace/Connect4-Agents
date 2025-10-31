@@ -48,7 +48,12 @@ class Game:
 
         # Winner
         if self.is_game_over:
-            print(f"Player {self.current_player} won (on move {self.total_move_count})")
+            if self.check_win(self.grid, 1):
+                print(f"Player 1 won! (on move {self.total_move_count})")
+            elif self.check_win(self.grid, 2):
+                print(f"Player 2 won! (on move {self.total_move_count})")
+            else:
+                print("Tie!")
 
     def try_drop_disc(self, col_num: int) -> bool:
         """Attempt to drop disc; Returns True if sucessful."""
