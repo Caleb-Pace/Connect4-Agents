@@ -6,7 +6,7 @@ COL_COUNT = 7
 
 class Game:
     def __init__(self):
-        self.grid = np.zeros((COL_COUNT, ROW_COUNT), dtype=int) # Column-major
+        self.grid = np.zeros((COL_COUNT, ROW_COUNT), dtype=int)  # Column-major
         self.current_player = 1
 
         self.total_move_count = 0
@@ -64,13 +64,13 @@ class Game:
 
         # Place disc
         self.drop_disc(self.grid, self.current_player, col_num)
-        total_move_count += 1
+        self.total_move_count += 1
 
         # Check if game has ended
-        if total_move_count >= (ROW_COUNT * COL_COUNT) or self.check_win(self.grid, self.current_player):
-            self.is_game_over = True # Tie or Win
+        if self.total_move_count >= (ROW_COUNT * COL_COUNT) or self.check_win(self.grid, self.current_player):
+            self.is_game_over = True  # Tie or Win
         else:
-            self.__next_player()     # Continue - Next players turn
+            self.__next_player()      # Continue - Next players turn
 
         return True        
 
@@ -86,7 +86,7 @@ class Game:
         grid[col_num][r] = player_id
 
     def check_win(self, grid: np.ndarray, player_id: int) -> bool:
-        rows, cols = grid.shape
+        cols, rows = grid.shape  # Column-major
 
         # Horizontal check
         for c in range(cols - 3):
