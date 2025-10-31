@@ -6,20 +6,20 @@ COL_COUNT = 7
 
 class Game:
     def __init__(self):
-        self.grid = np.zeros((COL_COUNT, ROW_COUNT), dtype=int)
+        self.grid = np.zeros((COL_COUNT, ROW_COUNT), dtype=int) # Column-major
         self.current_player = 1
 
-        self.round = 1
+        self.total_move_count = 0
         self.is_game_over = False
-
-    def get_has_finished(self) -> bool:
-        return self.is_game_over
 
     def get_grid(self) -> np.ndarray:
         return self.grid
 
-    def get_round(self) -> int:
-        return self.round
+    def get_has_finished(self) -> bool:
+        return self.is_game_over
+
+    def get_move_count(self) -> int:
+        return self.total_move_count
 
     def print_grid(self, redraw: bool = False):
         symbols = {
@@ -74,34 +74,42 @@ class Game:
 
         # Place disc
         self.grid[col_num][r] = self.current_player
-        self.__check_win()
-        if not self.is_game_over:
-            self.__next_player()
+        total_move_count += 1
 
-    def __check_win(self):
+        # Check if game has ended
+        if total_move_count >= (ROW_COUNT * COL_COUNT) or self.check_win(self.grid, self.current_player):
+            self.is_game_over = True # Tie or Win
+        else:
+            self.__next_player()     # Continue - Next players turn
+
+    def check_win(self, grid: np.ndarray, player_id: int) -> bool:
+        rows, cols = grid.shape
+
         # Horizontal check
-        for r in range(ROW_COUNT):
-            for c in range(COL_COUNT - 3):
-                if all(self.grid[c + i][r] == self.current_player for i in range(4)):
-                    self.is_game_over = True
-
+        for c in range(cols - 3):
+            for r in range(rows):
+                if np.all(grid[c:c+4, r] == player_id):
+                    return True
+        
         # Vertical check
-        for c in range(COL_COUNT):
-            for r in range(ROW_COUNT - 3):
-                if all(self.grid[c][r + i] == self.current_player for i in range(4)):
-                    self.is_game_over = True
-
+        for c in range(cols):
+            for r in range(rows - 3):
+                if np.all(grid[c, r:r+4] == player_id):
+                    return True
+        
         # Positive diagonal check (/)
-        for r in range(3, ROW_COUNT):
-            for c in range(COL_COUNT - 3):
-                if all(self.grid[c + i][r - i] == self.current_player for i in range(4)):
-                    self.is_game_over = True
-
+        for c in range(cols - 3):
+            for r in range(rows - 3):
+                if all(grid[c + i, r + i] == player_id for i in range(4)):
+                    return True
+        
         # Negative diagonal check (\)
-        for r in range(ROW_COUNT - 3):
-            for c in range(COL_COUNT - 3):
-                if all(self.grid[c + i][r + i] == self.current_player for i in range(4)):
-                    self.is_game_over = True
+        for c in range(cols - 3):
+            for r in range(3, rows):
+                if all(grid[c + i, r - i] == player_id for i in range(4)):
+                    return True
+        
+        return False
 
     def __next_player(self):
         if self.current_player == 1:
@@ -111,5 +119,5 @@ class Game:
             self.round += 1
 
     def is_valid_location(self, col_num: int) -> bool:
-        """Returns True if the column is not full."""
+        """Returns False if the column is full."""
         return self.grid[col_num][ROW_COUNT - 1] == 0
