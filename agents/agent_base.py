@@ -3,6 +3,7 @@ from game import Game
 
 class AgentBase(ABC):
     def __init__(self, player_id: int):
+        self.player_id = player_id
         self.is_player1 = player_id == 1
     
     @abstractmethod
