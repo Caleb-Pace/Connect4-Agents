@@ -55,8 +55,8 @@ class Game:
             return False # Game has finished
 
         if not (0 <= col_num < COL_COUNT):
-            print(f"Column {col_num} is out of range [{0}, {COL_COUNT})") # TODO: For debugging
-            return False # Invalid column number
+            raise Exception(f"Column {col_num} is out of range [{0}, {COL_COUNT})")
+            # return False # Invalid column number
 
         if not self.is_valid_location(col_num):
             return False # Column is full
