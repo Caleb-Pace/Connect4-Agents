@@ -10,8 +10,8 @@ g = Game()
 g.print_grid()
 
 # Create agents
-agent1 = RandomAgent(1)
-agent2 = RandomAgent(2)
+agent1 = HeuristicAgent(1)
+agent2 = HeuristicAgent(2)
 
 # Run game
 while not g.get_has_finished():
