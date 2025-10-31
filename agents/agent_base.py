@@ -2,6 +2,9 @@ from abc import ABC, abstractmethod
 from game import Game
 
 class AgentBase(ABC):
+    def __init__(self, player_id: int):
+        self.is_player1 = player_id == 1
+    
     @abstractmethod
     def move(self, g: Game):
         """
