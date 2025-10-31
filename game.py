@@ -13,7 +13,8 @@ class Game:
         self.is_game_over = False
 
     def get_grid(self) -> np.ndarray:
-        return self.grid
+        """Returns a copy of the grid"""
+        return self.grid.copy()
 
     def get_has_finished(self) -> bool:
         return self.is_game_over
@@ -61,10 +62,19 @@ class Game:
         if not self.is_valid_location(col_num):
             return False # Column is full
 
-        self.__drop_disc(col_num)
+        # Place disc
+        self.drop_disc(self.grid, self.current_player, col_num)
+        total_move_count += 1
+
+        # Check if game has ended
+        if total_move_count >= (ROW_COUNT * COL_COUNT) or self.check_win(self.grid, self.current_player):
+            self.is_game_over = True # Tie or Win
+        else:
+            self.__next_player()     # Continue - Next players turn
+
         return True        
 
-    def __drop_disc(self, col_num: int):
+    def drop_disc(self, grid: np.ndarray, player_id: int, col_num: int):
         top_row = ROW_COUNT - 1
 
         # Apply gravity: Find lowest free slot (in column)
@@ -73,14 +83,7 @@ class Game:
             r -= 1
 
         # Place disc
-        self.grid[col_num][r] = self.current_player
-        total_move_count += 1
-
-        # Check if game has ended
-        if total_move_count >= (ROW_COUNT * COL_COUNT) or self.check_win(self.grid, self.current_player):
-            self.is_game_over = True # Tie or Win
-        else:
-            self.__next_player()     # Continue - Next players turn
+        grid[col_num][r] = player_id
 
     def check_win(self, grid: np.ndarray, player_id: int) -> bool:
         rows, cols = grid.shape
