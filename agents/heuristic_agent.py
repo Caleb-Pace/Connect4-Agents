@@ -1,4 +1,3 @@
-import random
 from .agent_base import AgentBase
 from game import Game, COL_COUNT
 
@@ -28,5 +27,10 @@ class HeuristicAgent(AgentBase):
                     g.try_drop_disc(c) # Play blocking move
                     return
         
-        g.try_drop_disc(random.randint(0, 6))
-        return
+        # Place by preference (Prefer centre)
+        column_weights = [3, 2, 4, 0, 6, 1, 5]
+        for c in column_weights:
+            if g.try_drop_disc(c):  # Try drop returns false on fail
+                return
+
+        raise Exception("No move made!")  # Shouldn't be reached
