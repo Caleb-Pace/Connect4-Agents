@@ -48,7 +48,7 @@ class Game:
 
         # Winner
         if self.is_game_over:
-            print(f"Player {self.current_player} won (in {self.round} rounds)")
+            print(f"Player {self.current_player} won (on move {self.total_move_count})")
 
     def try_drop_disc(self, col_num: int) -> bool:
         """Attempt to drop disc; Returns True if sucessful."""
@@ -119,7 +119,6 @@ class Game:
             self.current_player = 2
         else:
             self.current_player = 1
-            self.round += 1
 
     def is_valid_location(self, col_num: int) -> bool:
         """Returns False if the column is full."""
