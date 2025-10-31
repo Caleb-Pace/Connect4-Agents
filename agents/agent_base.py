@@ -1,14 +1,14 @@
-import numpy as np
 from abc import ABC, abstractmethod
+from game import Game
 
 class AgentBase(ABC):
     @abstractmethod
-    def move(self, current_grid: np.ndarray) -> int:
+    def move(self, g: Game):
         """
-        Given the current board state, return the column index (0-based)
-        where the agent wants to place its piece.
+        Execute the agent's move on the given game.
         
-        :param current_grid: 2D list representing the Connect 4 board
-        :return: int (column index)
+        Args:
+            g (Game): The current Connect 4 game instance that provides
+                hooks for move validation, disc placement, and board state access.
         """
         pass

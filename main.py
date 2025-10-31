@@ -9,20 +9,13 @@ g = Game()
 g.print_grid()
 
 # Create agents
-agent1 = HeuristicAgent()
-agent2 = HeuristicAgent()
+agent1 = HeuristicAgent(1)
+agent2 = HeuristicAgent(2)
 
 # Run game
 while not g.get_has_finished():
-    chosen_col = agent1.move(g.get_grid())
-    if not g.try_drop_disc(chosen_col):
-        if not g.get_has_finished():
-            raise Exception("Invalid disc drop")
-
-    chosen_col = agent2.move(g.get_grid())
-    if not g.try_drop_disc(chosen_col):
-        if not g.get_has_finished():
-            raise Exception("Invalid disc drop")
+    agent1.move(g)
+    agent2.move(g)
 
     g.print_grid(True)
     time.sleep(0.1)
