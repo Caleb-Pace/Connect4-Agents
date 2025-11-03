@@ -256,7 +256,7 @@ class Connect4DQL():
     # Adapted from: https://github.com/johnnycode8/gym_solutions/blob/main/frozen_lake_dql.py#L208
     def test(self, model_file, hidden1_size: int, hidden2_size: int, episode_count: int, opponent_agent: AgentBase):
         # Load learned policy
-        policy_dqn = DQN((self.hidden1_size, self.hidden2_size))
+        policy_dqn = DQN(hidden1_size, hidden2_size)
         self.import_model(policy_dqn, model_file)
         policy_dqn.eval()  # Set model to evaluation mode
         
