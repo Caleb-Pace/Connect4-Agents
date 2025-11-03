@@ -4,11 +4,11 @@ from game import Game
 from dql import DQN, Connect4DQL
 
 class QLearningAgent(AgentBase):
-    def __init__(self, player_id: int, model_file):
+    def __init__(self, player_id: int, model_file, hidden1_size: int, hidden2_size: int):
         super().__init__(player_id)
 
         # Load learned policy
-        self.policy_dqn = DQN()
+        self.policy_dqn = DQN(hidden1_size, hidden2_size)
         Connect4DQL.import_model(self.policy_dqn, model_file)
         self.policy_dqn.eval()  # Set model to evaluation mode
 

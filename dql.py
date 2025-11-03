@@ -8,23 +8,21 @@ from game import Game
 
 
 class DQN(nn.Module):
-    def __init__(self):
+    def __init__(self, h1_size: int, h2_size: int):
         super().__init__()
 
         board_size = 6 * 7
 
         # 2 channels for discs (Yours and Opponents).
-        # 64 is arbitrary.
-        # 128 is double of 64 to detect deeper patterns.
         # Padding allows NN to handle the edge of the board properly.
         self.model = nn.Sequential(
-            nn.Conv2d(2, 64, kernel_size=3, padding=1),    # Search for patterns within a 3x3 window
-            nn.ReLU(),                                     # Suppress deconstructive noise
-            nn.Conv2d(64, 128, kernel_size=3, padding=1),  # Deeper pattern search
-            nn.Flatten(),                                  # Convert 2D feature map to 1D vector
-            nn.Linear((128 * board_size), board_size),     # Combine feature maps into one neuron per board cell
-            nn.ReLU(),                                     #
-            nn.Linear(board_size, 7)                       # Map NN to Q-values (7 actions)
+            nn.Conv2d(2, h1_size, kernel_size=3, padding=1),        # Search for patterns within a 3x3 window
+            nn.ReLU(),                                              # Suppress deconstructive noise
+            nn.Conv2d(h1_size, h2_size, kernel_size=3, padding=1),  # Deeper pattern search
+            nn.Flatten(),                                           # Convert 2D feature map to 1D vector
+            nn.Linear((h2_size * board_size), board_size),          # Combine feature maps into one neuron per board cell
+            nn.ReLU(),                                              #
+            nn.Linear(board_size, 7)                                # Map NN to Q-values (7 actions)
         )
 
     def forward(self, x):
@@ -49,20 +47,21 @@ class ReplayMemory():
 
 
 class Connect4DQL():
-    # TODO: Add hyperparameters as arguments
     def __init__(self):
         # Hyperparameters
-        self.learning_rate = 0.001       #
-        self.reward_discount_rate = 0.9  #
+        self.learning_rate = 0.001       # (Alpha)
+        self.reward_discount_rate = 0.9  # (Gamma)
         self.sync_rate = 10              # How many actions/steps/moves before syncing target to policy network
         self.replay_mem_size = 1000      # How many past experiences to store
         self.sample_size = 32            # How many memories to sample
 
         # Neural Network options
-        self.loss_func = nn.MSELoss()  # TODO: Maybe look into https://en.wikipedia.org/wiki/Huber_loss
+        self.loss_func = nn.MSELoss()
         self.optimiser = None
         self.device = "cpu"
-
+        self.hidden1_size = 64   # Number of neurons in first hidden layer, (arbitrary)
+        self.hidden2_size = 128  # Number of neurons in second hidden layer, (double to capture deeper patterns)
+        
         # Game variables
         self.player_id   = 0  # Initialised later
         self.opponent_id = 0  # Initialised later
@@ -71,6 +70,14 @@ class Connect4DQL():
         self.WIN_REWARD  = 1.0
         self.LOSS_REWARD = -1.0
         self.TIE_REWARD  = 0.5
+
+    def update_hyperparameters(self, gamma: float, batch_size: int, hidden1_size: int, hidden2_size: int):
+        self.reward_discount_rate = gamma
+
+        self.sample_size = batch_size
+
+        self.hidden1_size = hidden1_size
+        self.hidden2_size = hidden2_size
 
     # Adapted from: https://github.com/johnnycode8/gym_solutions/blob/main/frozen_lake_dql.py#L54
     def train(self, episode_count: int, opponent_agent: AgentBase):
@@ -81,8 +88,8 @@ class Connect4DQL():
         epsilon = 1.0 # Random action percentage
         
         # Create networks
-        policy_dqn = DQN()
-        target_dqn = DQN()
+        policy_dqn = DQN(self.hidden1_size, self.hidden2_size)
+        target_dqn = DQN(self.hidden1_size, self.hidden2_size)
         target_dqn.load_state_dict(policy_dqn.state_dict())  # Copy network weights (Policy -> Target)
 
         # Policy network optimiser
@@ -247,9 +254,9 @@ class Connect4DQL():
         self.optimiser.step()
 
     # Adapted from: https://github.com/johnnycode8/gym_solutions/blob/main/frozen_lake_dql.py#L208
-    def test(self, model_file, episode_count: int, opponent_agent: AgentBase):
+    def test(self, model_file, hidden1_size: int, hidden2_size: int, episode_count: int, opponent_agent: AgentBase):
         # Load learned policy
-        policy_dqn = DQN()
+        policy_dqn = DQN((self.hidden1_size, self.hidden2_size))
         self.import_model(policy_dqn, model_file)
         policy_dqn.eval()  # Set model to evaluation mode
         
