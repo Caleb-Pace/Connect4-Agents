@@ -113,7 +113,7 @@ class Connect4DQL():
                 self.opponent_id = 1
             opponent_agent.update_player_id(self.opponent_id)  # Update player ID for opponent agent
             
-            # Agent plays Connect 4
+            # Agent learns to plays Connect 4
             while not connect4.get_has_finished():
 
                 # Select action using the epsilon-greedy strategy
@@ -173,6 +173,9 @@ class Connect4DQL():
                     target_dqn.load_state_dict(policy_dqn.state_dict())  # Copy network weights (Policy -> Target)
                     unsynced_actions = 0
 
+        # Export policy (network)
+        self.export_model(policy_dqn)
+
     def transform_grid_to_dqn_input(self, game: Game):
         grid = game.get_grid()
         own_discs = (grid == self.player_id).astype(np.float32)
@@ -231,12 +234,38 @@ class Connect4DQL():
         loss.backward()
         self.optimiser.step()
 
+    # Adapted from: https://github.com/johnnycode8/gym_solutions/blob/main/frozen_lake_dql.py#L208
+    def test(self, model_file, episode_count: int, opponent_agent: AgentBase):
+        # Load learned policy
+        policy_dqn = DQN()
+        self.import_model(policy_dqn, model_file)
+        policy_dqn.eval()  # Set model to evaluation mode
+        
+        # Create game
+        connect4 = Game()    
 
-    def test(self):
-        pass
+        # Test model
+        for i in range(episode_count):
+            connect4.reset()  # Reset game
 
-    # # TODO: Implement later
-    # def export_model():
-    #     pass
-    # def import_model():
-    #     pass
+            # Agent plays Connect 4
+            while not connect4.get_has_finished():
+                # Best action (according to NN)
+                with torch.no_grad():
+                    q_values = policy_dqn(self.transform_grid_to_dqn_input(connect4))  # Retrieve Q values
+
+                    # Select the column with the highest Q value
+                    while len(columns) > 0:
+                        best_action = torch.argmax(q_values).item()
+                        if connect4.try_drop_disc(best_action):
+                            action = best_action
+                            break  # Drop successful
+                        
+                        # Ignore full/invalid column
+                        q_values[0, best_action] = -float("inf")  # from batch 0
+
+    def export_model(self, policy_dqn: DQN):
+        torch.save(policy_dqn.state_dict(), "")
+
+    def import_model(self, policy_dqn: DQN, model_file):
+        policy_dqn.load_state_dict(torch.load(model_file))
