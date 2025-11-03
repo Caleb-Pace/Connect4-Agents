@@ -6,11 +6,7 @@ COL_COUNT = 7
 
 class Game:
     def __init__(self):
-        self.grid = np.zeros((COL_COUNT, ROW_COUNT), dtype=int)  # Column-major
-        self.current_player = 1
-
-        self.total_move_count = 0
-        self.is_game_over = False
+        self.reset()  # Initialise game
 
     def get_grid(self) -> np.ndarray:
         """Returns a copy of the grid"""
@@ -128,3 +124,10 @@ class Game:
     def is_valid_location(self, col_num: int) -> bool:
         """Returns False if the column is full."""
         return self.grid[col_num][ROW_COUNT - 1] == 0
+    
+    def reset(self):
+        self.grid = np.zeros((COL_COUNT, ROW_COUNT), dtype=int)  # Column-major
+        self.current_player = 1
+
+        self.total_move_count = 0
+        self.is_game_over = False
