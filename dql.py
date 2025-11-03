@@ -137,7 +137,7 @@ class Connect4DQL():
                         q_values = policy_dqn(self.transform_grid_to_dqn_input(connect4))  # Retrieve Q values
 
                         # Select the column with the highest Q value
-                        while len(columns) > 0:
+                        for _ in range(7):
                             best_action = torch.argmax(q_values).item()
                             if connect4.try_drop_disc(best_action):
                                 action = best_action
@@ -245,7 +245,7 @@ class Connect4DQL():
         connect4 = Game()    
 
         # Test model
-        for i in range(episode_count):
+        for _ in range(episode_count):
             connect4.reset()  # Reset game
 
             # Agent plays Connect 4
@@ -255,7 +255,7 @@ class Connect4DQL():
                     q_values = policy_dqn(self.transform_grid_to_dqn_input(connect4))  # Retrieve Q values
 
                     # Select the column with the highest Q value
-                    while len(columns) > 0:
+                    for _ in range(7):
                         best_action = torch.argmax(q_values).item()
                         if connect4.try_drop_disc(best_action):
                             action = best_action
