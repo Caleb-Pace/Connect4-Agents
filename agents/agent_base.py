@@ -3,10 +3,7 @@ from game import Game
 
 class AgentBase(ABC):
     def __init__(self, player_id: int):
-        self.is_player1 = player_id == 1
-        
-        self.player_id = player_id
-        self.opponent_id = 2 if self.is_player1 else 1
+        self.update_player_id(player_id)
     
     @abstractmethod
     def move(self, g: Game):
@@ -18,3 +15,9 @@ class AgentBase(ABC):
                 hooks for move validation, disc placement, and board state access.
         """
         pass
+
+    def update_player_id(self, player_id: int):
+        self.is_player1 = player_id == 1
+        
+        self.player_id = player_id
+        self.opponent_id = 2 if self.is_player1 else 1
