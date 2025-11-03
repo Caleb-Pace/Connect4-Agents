@@ -115,6 +115,10 @@ class Connect4DQL():
             
             # Agent learns to plays Connect 4
             while not connect4.get_has_finished():
+                
+                # Opponent move (if first)
+                if self.opponent_id == 1:
+                    opponent_agent.move(connect4)
 
                 # Select action using the epsilon-greedy strategy
                 action = None  # Initialised later
@@ -154,6 +158,10 @@ class Connect4DQL():
 
                 # Remember experience
                 memory.append(state, connect4.get_grid(), action, reward, connect4.get_has_finished())
+
+                # Opponent move (if second)
+                if self.opponent_id == 2:
+                    opponent_agent.move(connect4)
 
             # Record wins
             if reward == self.WIN_REWARD:
@@ -245,11 +253,27 @@ class Connect4DQL():
         connect4 = Game()    
 
         # Test model
-        for _ in range(episode_count):
+        for i in range(episode_count):
             connect4.reset()  # Reset game
+
+            # Switch who goes first
+            if i % 2 == 0:
+                # Play as player 1
+                self.player_id   = 1
+                self.opponent_id = 2
+            else:
+                # Play as player 2
+                self.player_id   = 2
+                self.opponent_id = 1
+            opponent_agent.update_player_id(self.opponent_id)  # Update player ID for opponent agent
 
             # Agent plays Connect 4
             while not connect4.get_has_finished():
+                
+                # Opponent move (if first)
+                if self.opponent_id == 1:
+                    opponent_agent.move(connect4)
+
                 # Best action (according to NN)
                 with torch.no_grad():
                     q_values = policy_dqn(self.transform_grid_to_dqn_input(connect4))  # Retrieve Q values
@@ -263,6 +287,10 @@ class Connect4DQL():
                         
                         # Ignore full/invalid column
                         q_values[0, best_action] = -float("inf")  # from batch 0
+
+                # Opponent move (if second)
+                if self.opponent_id == 2:
+                    opponent_agent.move(connect4)
 
     def export_model(self, policy_dqn: DQN):
         torch.save(policy_dqn.state_dict(), "")
