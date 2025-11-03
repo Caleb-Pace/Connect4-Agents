@@ -99,7 +99,6 @@ class Connect4DQL():
 
         for i in range(episode_count):
             connect4.reset()  # Reset game
-            state = connect4.get_grid()
             reward = 0
 
             # Switch who goes first
@@ -121,6 +120,7 @@ class Connect4DQL():
                     opponent_agent.move(connect4)
 
                 # Select action using the epsilon-greedy strategy
+                grid = connect4.get_grid()
                 action = None  # Initialised later
                 if random.random() < epsilon:
                     # Random action
@@ -138,7 +138,7 @@ class Connect4DQL():
                 else:
                     # Best action (according to NN)
                     with torch.no_grad():
-                        q_values = policy_dqn(self.transform_grid_to_dqn_input(connect4))  # Retrieve Q values
+                        q_values = policy_dqn(self.transform_grid_to_dqn_input(grid, self.player_id, self.opponent_id))  # Retrieve Q values
 
                         # Select the column with the highest Q value
                         for _ in range(7):
@@ -157,7 +157,7 @@ class Connect4DQL():
                 reward = self.calculate_reward(connect4)
 
                 # Remember experience
-                memory.append(state, connect4.get_grid(), action, reward, connect4.get_has_finished())
+                memory.append(grid, connect4.get_grid(), self.player_id, action, reward, connect4.get_has_finished())
 
                 # Opponent move (if second)
                 if self.opponent_id == 2:
@@ -184,10 +184,10 @@ class Connect4DQL():
         # Export policy (network)
         self.export_model(policy_dqn)
 
-    def transform_grid_to_dqn_input(self, game: Game):
+    def transform_grid_to_dqn_input(self, game: Game, own_id: int, opp_id: int):
         grid = game.get_grid()
-        own_discs = (grid == self.player_id).astype(np.float32)
-        opp_discs = (grid == self.opponent_id).astype(np.float32)
+        own_discs = (grid == own_id).astype(np.float32)
+        opp_discs = (grid == opp_id).astype(np.float32)
         
         stacked = np.stack([own_discs, opp_discs])
         return torch.tensor(stacked, dtype=torch.float32, device=self.device).unsqueeze(0)  # unsqueeze: Add batch_size dimension (1 grid per batch)
@@ -211,8 +211,12 @@ class Connect4DQL():
         current_q_list = []
         target_q_list = []
 
-        for grid, new_grid, action, reward, has_finished in sample:
+        for grid, new_grid, player_id, action, reward, has_finished in sample:
+            
+            # Get opponent ID for dqn input
+            opponent_id = 2 if player_id == 1 else 1
 
+            # Get target Q value
             if has_finished:
                 # Terminal state: Q-target equals the immediate reward (no future discounted Q)
                 target = torch.FloatTensor([reward])
@@ -220,10 +224,10 @@ class Connect4DQL():
                 # Calculate target Q value 
                 with torch.no_grad():
                     target = torch.FloatTensor(
-                        reward + (self.reward_discount_rate * target_dqn(self.transform_grid_to_dqn_input(new_grid)).max())
+                        reward + (self.reward_discount_rate * target_dqn(self.transform_grid_to_dqn_input(new_grid, player_id, opponent_id)).max())
                     )
 
-            dqn_input = self.transform_grid_to_dqn_input(grid)
+            dqn_input = self.transform_grid_to_dqn_input(grid, player_id, opponent_id)
 
             # Get the Q value sets
             current_q = policy_dqn(dqn_input)
@@ -274,9 +278,10 @@ class Connect4DQL():
                 if self.opponent_id == 1:
                     opponent_agent.move(connect4)
 
-                # Best action (according to NN)
+                # Select best action (according to NN)
+                grid = connect4.get_grid()
                 with torch.no_grad():
-                    q_values = policy_dqn(self.transform_grid_to_dqn_input(connect4))  # Retrieve Q values
+                    q_values = policy_dqn(self.transform_grid_to_dqn_input(grid, self.player_id, self.opponent_id))  # Retrieve Q values
 
                     # Select the column with the highest Q value
                     for _ in range(7):
