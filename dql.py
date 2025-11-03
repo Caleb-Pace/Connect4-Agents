@@ -195,8 +195,42 @@ class Connect4DQL():
         
         return self.TIE_REWARD
 
+    # Adapted from: https://github.com/johnnycode8/gym_solutions/blob/main/frozen_lake_dql.py#L156
     def optimise(self, sample, policy_dqn: DQN, target_dqn: DQN):
-        pass
+        current_q_list = []
+        target_q_list = []
+
+        for grid, new_grid, action, reward, has_finished in sample:
+
+            if has_finished:
+                # Terminal state: Q-target equals the immediate reward (no future discounted Q)
+                target = torch.FloatTensor([reward])
+            else:
+                # Calculate target Q value 
+                with torch.no_grad():
+                    target = torch.FloatTensor(
+                        reward + (self.reward_discount_rate * target_dqn(self.transform_grid_to_dqn_input(new_grid)).max())
+                    )
+
+            dqn_input = self.transform_grid_to_dqn_input(grid)
+
+            # Get the Q value sets
+            current_q = policy_dqn(dqn_input)
+            current_q_list.append(current_q)  # For calculating loss
+            target_q = target_dqn(dqn_input)
+
+            # Update target Q for the taken action (with the computed Bellman target)
+            target_q[action] = target
+            target_q_list.append(target_q)
+
+        # Compute loss for the sample
+        loss = self.loss_func(torch.stack(current_q_list), torch.stack(target_q_list))
+
+        # Optimise the model
+        self.optimiser.zero_grad()
+        loss.backward()
+        self.optimiser.step()
+
 
     def test(self):
         pass
