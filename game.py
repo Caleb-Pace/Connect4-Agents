@@ -15,7 +15,7 @@ class Game:
     def set_grid(self, grid: np.ndarray):
         self.grid = grid
 
-    def grid_to_string(self, grid: np.ndarray) -> str:
+    def grid_to_string(self, include_winner: bool = True) -> str:
         symbols = {
             0: ".",
             1: "X",
@@ -28,12 +28,21 @@ class Game:
         for r in range((ROW_COUNT - 1), -1, -1):
             row_str = "| "
             for c in range(COL_COUNT):
-                row_str += symbols.get(grid[c][r]) + " "
+                row_str += symbols.get(self.grid[c][r]) + " "
 
             s += (row_str + "|")
         
         # Footer
         s += ("~~" + ('-'.join('-' * COL_COUNT)) + "~~")
+
+        # Winner
+        if include_winner and self.is_game_over:
+            if self.check_win(self.grid, 1):
+                s += f"Player 1 won! (on move {self.total_move_count})"
+            elif self.check_win(self.grid, 2):
+                s += f"Player 2 won! (on move {self.total_move_count})"
+            else:
+                s += "Tie!"
 
         return s
 
@@ -52,15 +61,6 @@ class Game:
 
         # Print grid
         print(self.grid_to_string(self.grid))
-
-        # Winner
-        if self.is_game_over:
-            if self.check_win(self.grid, 1):
-                print(f"Player 1 won! (on move {self.total_move_count})")
-            elif self.check_win(self.grid, 2):
-                print(f"Player 2 won! (on move {self.total_move_count})")
-            else:
-                print("Tie!")
 
     def try_drop_disc(self, col_num: int) -> bool:
         """Attempt to drop disc; Returns True if sucessful."""
