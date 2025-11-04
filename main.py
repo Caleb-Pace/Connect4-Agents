@@ -1,4 +1,5 @@
 import time
+import numpy as np
 from game import Game
 from agents.heuristic_agent import HeuristicAgent
 from agents.q_learning_agent import QLearningAgent
@@ -7,6 +8,7 @@ from datetime import datetime
 from dql import Connect4DQL
 
 def main():
+    # export_demos()
     # play()
 
     train_models()
@@ -51,6 +53,47 @@ def test_model(model_file, hidden1_size: int, hidden2_size: int):
     # Test pre-trained model
     print(f"[{datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-2]}] Testing model \"{model_file}\" (for {episodes} episodes)")
     connect4_dql.test(model_file, hidden1_size, hidden2_size, episodes, opp_agent)
+
+def export_demos():
+    demos = [
+        (1, np.zeros((7, 6), dtype=int)),  # Empty grid (Shows column preference)
+        (1, np.array([
+            [0, 0, 0, 0, 0, 0],
+            [1, 0, 0, 0, 0, 0],
+            [1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [2, 0, 0, 0, 0, 0],
+            [2, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0]
+        ])),  # P1 - Offense or Defense
+        (2, np.array([
+            [0, 0, 0, 0, 0, 0],
+            [1, 1, 0, 0, 0, 0],
+            [1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [2, 0, 0, 0, 0, 0],
+            [2, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0]
+        ])),  # P2 - Offense or Defense
+        (2, np.array([
+            [0, 0, 0, 0, 0, 0],
+            [1, 1, 0, 0, 0, 0],
+            [1, 2, 1, 0, 0, 0],
+            [2, 1, 1, 0, 0, 0],
+            [1, 2, 1, 0, 0, 0],
+            [2, 2, 0, 0, 0, 0],
+            [2, 0, 0, 0, 0, 0]
+        ]))  # Double threat
+    ]
+
+    for i, (player_id, grid) in enumerate(demos):
+        g = Game()
+        g.set_grid(grid)
+
+        with open("demos.txt", "a") as file:
+            file.write(f"   < State {i} >\n")
+            file.write(g.grid_to_string(False)[:-1])
+            file.write(f"Agent is player {player_id}\n\n")
 
 def play():
     print("\nConnect 4 with Agents:")
