@@ -1,11 +1,11 @@
-import random, torch
+import random, torch, os
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 from agents.agent_base import AgentBase
 from collections import deque
+from datetime import datetime, timedelta
 from game import Game
-
 
 class DQN(nn.Module):
     def __init__(self, h1_size: int, h2_size: int):
@@ -59,9 +59,10 @@ class Connect4DQL():
         self.loss_func = nn.MSELoss()
         self.optimiser = None
         self.device = "cpu"
-        self.hidden1_size = 64   # Number of neurons in first hidden layer, (arbitrary)
-        self.hidden2_size = 128  # Number of neurons in second hidden layer, (double to capture deeper patterns)
-        
+        self.hidden1_size = 64       # Number of neurons in first hidden layer, (arbitrary)
+        self.hidden2_size = 128      # Number of neurons in second hidden layer, (double to capture deeper patterns)
+        self.checkpoint_rate = 1000  # How many episodes before creating a model checkpoint (saving the policy DQN)
+
         # Game variables
         self.player_id   = 0  # Initialised later
         self.opponent_id = 0  # Initialised later
@@ -71,6 +72,9 @@ class Connect4DQL():
         self.LOSS_REWARD = -1.0
         self.TIE_REWARD  = 0.5
 
+        # Data & Results
+        self.training_folder = f"training/full_model/"
+
     def update_hyperparameters(self, gamma: float, batch_size: int, hidden1_size: int, hidden2_size: int):
         self.reward_discount_rate = gamma
 
@@ -79,14 +83,14 @@ class Connect4DQL():
         self.hidden1_size = hidden1_size
         self.hidden2_size = hidden2_size
 
+        # Data & Results
+        self.training_folder = f"training/g{self.reward_discount_rate}_b{self.sample_size}_h{self.hidden1_size}-{self.hidden2_size}_model/"
+
     # Adapted from: https://github.com/johnnycode8/gym_solutions/blob/main/frozen_lake_dql.py#L54
     def train(self, episode_count: int, opponent_agent: AgentBase):
         # Initialise memory
         memory = ReplayMemory(self.replay_memory_size)
-        
-        # Initialise epsilon for epsilon-greedy exploration
-        epsilon = 1.0 # Random action percentage
-        
+
         # Create networks
         policy_dqn = DQN(self.hidden1_size, self.hidden2_size)
         target_dqn = DQN(self.hidden1_size, self.hidden2_size)
@@ -95,11 +99,52 @@ class Connect4DQL():
         # Policy network optimiser
         self.optimiser = torch.optim.Adam(policy_dqn.parameters(), lr=self.learning_rate)
 
+        # (Data) Create training folder
+        if not os.path.exists(self.training_folder):
+            os.makedirs(self.training_folder)
+
+        # (Data) Compile data file - Settings
+        with open(f"{self.training_folder}data.txt", "w") as file:
+            file.write(f"{episode_count} episodes\n")
+            
+            file.write("\n< Hyperparameters >\n")
+            file.write(f"Learning rate (alpha): {self.learning_rate}\n")
+            file.write(f"Learning rate (Gamma): {self.reward_discount_rate}\n")
+            file.write(f"            Sync rate: {self.sync_rate}\n")
+            file.write(f"   Replay memory size: {self.replay_mem_size}\n")
+            file.write(f"           Batch size: {self.sample_size}\n")
+
+            file.write("\n< Neural Network >\n")
+            file.write(f"Hidden layer 1 neurons: {self.hidden1_size}\n")
+            file.write(f"Hidden layer 2 neurons: {self.hidden2_size}\n")
+            file.write(f"         Loss function: {self.loss_func.__class__.__name__}\n")
+            file.write(f"             Optimiser: {self.optimiser.__class__.__name__}\n")
+            file.write(f"                Device: {self.device}\n")
+
+            file.write("\n< Reward weights >\n")
+            file.write(f" Win: {self.WIN_REWARD}\n")
+            file.write(f"Loss: {self.LOSS_REWARD}\n")
+            file.write(f" Tie: {self.TIE_REWARD}\n")
+
         # Track episode rewards
-        episode_rewards = np.zeros(episode_count)
+        episode_wins    = np.zeros(episode_count)  # For optimisation check
+        episode_rewards = np.zeros(episode_count)  # (Data) For plotting win rate
+        
+        # (Data) Track actions to win
+        actions_to_win = []
+
+        # (Data) Track TD/DQN loss
+        loss_values = []
+
+        # Initialise epsilon for epsilon-greedy exploration
+        epsilon = 1.0  # Random action percentage
+        epsilon_history = np.zeros(episode_count)  # (Data) For plotting epsilon
 
         # Track actions/steps/moves for network syncing
         unsynced_actions = 0
+
+        # (Data) Track training time
+        start_time = datetime.now()
 
         # Create game
         connect4 = Game()
@@ -172,13 +217,25 @@ class Connect4DQL():
 
             # Record wins
             if reward == self.WIN_REWARD:
-                episode_rewards[i] = 1
+                episode_wins[i] = 1
+
+                # (Data) Calculate action count
+                total_moves = connect4.get_move_count()
+                if self.player_id == 1:
+                    total_moves += 1  # Player 2 hasn't moved yet - Complete the round
+                actions_to_win.append((total_moves // 2))
+
+            # Record reward
+            episode_rewards[i] = reward
+
+            # Record epsilon value
+            epsilon_history[i] = epsilon
 
             # Only improve network if there is enough experience and at least 1 win
-            if (len(memory) > self.sample_size) and (np.sum(episode_rewards) > 0):
+            if (len(memory) > self.sample_size) and (np.sum(episode_wins) > 0):
                 # Optimise network
                 sample = memory.sample(self.sample_size)
-                self.optimise(sample, policy_dqn, target_dqn)
+                loss_values.append(self.optimise(sample, policy_dqn, target_dqn))
                 
                 # Epsilon decay (Action choice strategy)
                 epsilon = max(((epsilon - 1) / episode_count), 0)
@@ -188,8 +245,31 @@ class Connect4DQL():
                     target_dqn.load_state_dict(policy_dqn.state_dict())  # Copy network weights (Policy -> Target)
                     unsynced_actions = 0
 
+            # Model checkpoint
+            if (i % self.checkpoint_rate == 0) and (i > 0) and (i < (episode_count - self.checkpoint_rate)):
+                self.export_model(policy_dqn, f"{self.training_folder}chkpt_e{episode_count}.pt")
+
+        # (Data) Track training time
+        end_time = datetime.now()
+
         # Export policy (network)
-        self.export_model(policy_dqn)
+        self.export_model(policy_dqn, f"{self.training_folder}final.pt")
+
+        # (Data) Calculate training time
+        duration = end_time - start_time
+
+        # (Data) Compile data file - Results and training time
+        recent_window = min(100, len(episode_rewards))  # Handle <100 episodes
+        with open(f"{self.training_folder}data.txt", "a") as file:
+            file.write("\n< Statistics >\n")
+            recent_losses = loss_values[-recent_window:]
+            average_loss = sum(recent_losses) / len(recent_losses) if recent_losses else 0.0
+            file.write(f" DQN loss: {average_loss}\n")
+            file.write(f" Win rate: {episode_rewards[-recent_window:].count(self.WIN_REWARD) / recent_window}\n")
+            file.write(f"Loss rate: {episode_rewards[-recent_window:].count(self.LOSS_REWARD) / recent_window}\n")
+            file.write(f" Tie rate: {episode_rewards[-recent_window:].count(self.TIE_REWARD) / recent_window}\n")
+
+            file.write(f"Training time elapsed: {format_duration(duration)}\n")
 
     def transform_grid_to_dqn_input(self, game: Game, own_id: int, opp_id: int):
         grid = game.get_grid()
@@ -214,7 +294,7 @@ class Connect4DQL():
         return self.TIE_REWARD
 
     # Adapted from: https://github.com/johnnycode8/gym_solutions/blob/main/frozen_lake_dql.py#L156
-    def optimise(self, sample, policy_dqn: DQN, target_dqn: DQN):
+    def optimise(self, sample, policy_dqn: DQN, target_dqn: DQN) -> float:
         current_q_list = []
         target_q_list = []
 
@@ -247,11 +327,14 @@ class Connect4DQL():
 
         # Compute loss for the sample
         loss = self.loss_func(torch.stack(current_q_list), torch.stack(target_q_list))
+        loss_value = loss.item()  # Convert tensor to a float
 
         # Optimise the model
         self.optimiser.zero_grad()
         loss.backward()
         self.optimiser.step()
+
+        return loss_value  # (Data) For plotting loss
 
     # Adapted from: https://github.com/johnnycode8/gym_solutions/blob/main/frozen_lake_dql.py#L208
     def test(self, model_file, hidden1_size: int, hidden2_size: int, episode_count: int, opponent_agent: AgentBase):
@@ -260,6 +343,16 @@ class Connect4DQL():
         self.import_model(policy_dqn, model_file)
         policy_dqn.eval()  # Set model to evaluation mode
         
+        # Data & Results
+        model_name = os.path.splitext(model_file)
+        self.testing_folder  = f"testing/dql_vs_{opponent_agent.__class__.__name__}/{model_name}/"
+        
+        # (Data) Track episode rewards
+        episode_rewards = np.zeros(episode_count)  # (Data) For plotting win rate
+        
+        # (Data) Track actions to win
+        actions_to_win = []
+
         # Create game
         connect4 = Game()    
 
@@ -300,12 +393,35 @@ class Connect4DQL():
                         # Ignore full/invalid column
                         q_values[0, best_action] = -float("inf")  # from batch 0
 
+                # Check reward
+                reward = self.calculate_reward(connect4)
+
                 # Opponent move (if second)
                 if self.opponent_id == 2:
                     opponent_agent.move(connect4)
 
-    def export_model(self, policy_dqn: DQN):
-        torch.save(policy_dqn.state_dict(), "")
+            # (Data) Record win
+            if reward == self.WIN_REWARD:
+                # Calculate action count
+                total_moves = connect4.get_move_count()
+                if self.player_id == 1:
+                    total_moves += 1  # Player 2 hasn't moved yet - Complete the round
+                actions_to_win.append((total_moves // 2))
+
+            # (Data) Record game results
+            episode_rewards[i] = reward
+
+    def export_model(self, policy_dqn: DQN, model_file):
+        torch.save(policy_dqn.state_dict(), model_file)
 
     def import_model(self, policy_dqn: DQN, model_file):
         policy_dqn.load_state_dict(torch.load(model_file))
+
+
+def format_duration(duration):
+    total_seconds = duration.total_seconds()
+    hours = int(total_seconds // 3600)
+    minutes = int((total_seconds % 3600) // 60)
+    seconds = int(total_seconds % 60)
+    milliseconds = int((total_seconds - int(total_seconds)) * 1000)
+    return f"{hours:02}:{minutes:02}:{seconds:02}.{milliseconds:03}"
