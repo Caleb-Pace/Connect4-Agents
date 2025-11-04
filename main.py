@@ -9,9 +9,11 @@ from dql import Connect4DQL
 def main():
     # play()
 
-    train_models()
+    # train_models()
 
-    # test_model()
+    test_model(f"training/full_model/model checkpoints/" + "e2000" + ".pt", 64, 128)
+
+    print(f"[{datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-2]}] Jobs complete!")
 
 def train_models():
     gammas = [0.9, 0.99]           # Reward discount factor (Short-term vs Long-term strategy) 
@@ -41,9 +43,14 @@ def train_models():
 
                 connect4_dql.train(episodes, opp_agent)
 
-
 def test_model(model_file, hidden1_size: int, hidden2_size: int):
-    pass
+    opp_agent = HeuristicAgent(1)  # ID will be changed
+    connect4_dql = Connect4DQL()
+    episodes = 1_000
+
+    # Test pre-trained model
+    print(f"[{datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-2]}] Testing model \"{model_file}\" (for {episodes} episodes)")
+    connect4_dql.test(model_file, hidden1_size, hidden2_size, episodes, opp_agent)
 
 def play():
     print("\nConnect 4 with Agents:")
