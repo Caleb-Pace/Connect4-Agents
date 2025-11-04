@@ -12,6 +12,9 @@ class Game:
         """Returns a copy of the grid"""
         return self.grid.copy()
 
+    def set_grid(self, grid: np.ndarray):
+        self.grid = grid
+
     def get_has_finished(self) -> bool:
         return self.is_game_over
 
