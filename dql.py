@@ -481,9 +481,13 @@ class Connect4DQL():
         policy_dqn.eval()  # Set model to evaluation mode
         
         # Data & Results
-        model_name = os.path.splitext(model_file)
+        model_name = os.path.splitext(os.path.basename(model_file))[0]
         self.testing_folder  = f"testing/dql_vs_{opponent_agent.__class__.__name__}/{model_name}/"
         match_example_frequency = episode_count // 5
+
+        # (Data) Create testing folder
+        if not os.path.exists(self.testing_folder):
+            os.makedirs(self.testing_folder)
 
         # (Data) Track episode rewards
         episode_rewards = np.zeros(episode_count)  # (Data) For game results
@@ -554,7 +558,7 @@ class Connect4DQL():
 
             # (Data) Save match examples
             if (i % match_example_frequency == 0) and (i > 0):
-                with open(f"{self.testing_folder}", "a") as file:
+                with open(f"{self.testing_folder}examples.txt", "a") as file:
                     file.write(f"{connect4.grid_to_string()}\n")
 
         # (Results) Plot game results
@@ -567,8 +571,8 @@ class Connect4DQL():
         plt.ylabel("Number of Episodes")
         plt.grid(axis="y", linestyle="--", alpha=0.7)
         plt.tight_layout()
-        plt.savefig("episode_results_totals.png", dpi=300)
-        plt.show()
+        plt.savefig(f"{self.testing_folder}episode_results_totals.png", dpi=300)
+        plt.close()
 
         # (Results) Plot rolling Win rate
         bin_size = 100
