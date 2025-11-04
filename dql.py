@@ -55,8 +55,8 @@ class Connect4DQL():
         self.learning_rate = 0.001         # (Alpha)
         self.reward_discount_factor = 0.9  # (Gamma)
         self.sync_rate = 30                # How many actions/steps/moves before syncing target to policy network
-        self.replay_mem_size = 1000        # How many past experiences to store
-        self.sample_size = 32              # How many memories to sample
+        self.replay_mem_size = 10000       # How many past experiences to store
+        self.sample_size = 64              # How many memories to sample
 
         # Neural Network options
         self.loss_func = nn.MSELoss()
