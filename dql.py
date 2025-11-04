@@ -91,7 +91,7 @@ class Connect4DQL():
     # Adapted from: https://github.com/johnnycode8/gym_solutions/blob/main/frozen_lake_dql.py#L54
     def train(self, episode_count: int, opponent_agent: AgentBase):
         # Initialise memory
-        memory = ReplayMemory(self.replay_memory_size)
+        memory = ReplayMemory(self.replay_mem_size)
 
         # Create networks
         policy_dqn = DQN(self.hidden1_size, self.hidden2_size)
@@ -216,7 +216,7 @@ class Connect4DQL():
                 reward = self.calculate_reward(connect4)
 
                 # Remember experience
-                memory.append(grid, connect4.get_grid(), self.player_id, action, reward, connect4.get_has_finished())
+                memory.push((grid, connect4.get_grid(), self.player_id, action, reward, connect4.get_has_finished()))
 
                 # Opponent move (if second)
                 if self.opponent_id == 2:
@@ -260,7 +260,7 @@ class Connect4DQL():
         end_time = datetime.now()
 
         # Export policy (network)
-        self.export_model(policy_dqn, f"{self.training_folder}final.pt")
+        self.export_model(policy_dqn, f"{self.training_folder}model.pt")
 
         # (Data) Calculate training time
         duration = end_time - start_time
@@ -272,9 +272,9 @@ class Connect4DQL():
             recent_losses = loss_values[-recent_window:]
             average_loss = sum(recent_losses) / len(recent_losses) if recent_losses else 0.0
             file.write(f" DQN loss: {average_loss}\n")
-            file.write(f" Win rate: {episode_rewards[-recent_window:].count(self.WIN_REWARD) / recent_window}\n")
-            file.write(f"Loss rate: {episode_rewards[-recent_window:].count(self.LOSS_REWARD) / recent_window}\n")
-            file.write(f" Tie rate: {episode_rewards[-recent_window:].count(self.TIE_REWARD) / recent_window}\n")
+            file.write(f" Win rate: {np.sum(episode_rewards[-recent_window:] == self.WIN_REWARD) / recent_window}\n")
+            file.write(f"Loss rate: {np.sum(episode_rewards[-recent_window:] == self.LOSS_REWARD) / recent_window}\n")
+            file.write(f" Tie rate: {np.sum(episode_rewards[-recent_window:] == self.TIE_REWARD) / recent_window}\n")
 
             file.write(f"Training time elapsed: {format_duration(duration)}\n")
 
@@ -312,18 +312,17 @@ class Connect4DQL():
         window = 10  # Episode window
         if len(actions_to_win) >= window:
             actions_ma = np.convolve(actions_to_win, np.ones(window)/window, mode="valid")
-        else:
-            actions_ma = actions_to_win  # Not enough wins for rolling average
-        plt.figure(figsize=(10,4))
-        plt.plot(actions_to_win, alpha=0.5, label="Moves per Win")
-        plt.plot(range(window-1, len(actions_to_win)), actions_ma, color="blue", label=f"{window}-Episode MA")
-        plt.title("Moves per Win with Moving Average")
-        plt.xlabel("Episode")
-        plt.ylabel("Moves")
-        plt.legend()
-        plt.grid(True)
-        plt.savefig(f"{self.training_folder}moves_per_win.png", dpi=300)
-        plt.close()
+
+            plt.figure(figsize=(10,4))
+            plt.plot(actions_to_win, alpha=0.5, label="Moves per Win")
+            plt.plot(range(window-1, len(actions_to_win)), actions_ma, color="blue", label=f"{window}-Episode MA")
+            plt.title("Moves per Win with Moving Average")
+            plt.xlabel("Episode")
+            plt.ylabel("Moves")
+            plt.legend()
+            plt.grid(True)
+            plt.savefig(f"{self.training_folder}moves_per_win.png", dpi=300)
+            plt.close()
 
         # (Results) Plot Epsilon decay
         plt.figure(figsize=(10,4))
@@ -338,37 +337,41 @@ class Connect4DQL():
 
         # (Data) Define game states
         demos = [
-            (1, np.zeros()),  # Empty grid (Shows column preference)
+            (1, np.zeros((7, 6), dtype=int)),  # Empty grid (Shows column preference)
             (1, np.array([
-                [0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0],
-                [1, 1, 0, 0, 2, 2, 0]
+                [0, 0, 0, 0, 0, 0],
+                [1, 0, 0, 0, 0, 0],
+                [1, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0],
+                [2, 0, 0, 0, 0, 0],
+                [2, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0]
             ])),  # P1 - Offense or Defense
             (2, np.array([
-                [0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0],
-                [1, 1, 1, 0, 2, 2, 0]
+                [0, 0, 0, 0, 0, 0],
+                [1, 1, 0, 0, 0, 0],
+                [1, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0],
+                [2, 0, 0, 0, 0, 0],
+                [2, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0]
             ])),  # P2 - Offense or Defense
             (2, np.array([
-                [0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 1, 1, 1, 0, 0],
-                [0, 2, 2, 2, 1, 1, 0],
-                [0, 1, 2, 1, 2, 2, 0],
-                [0, 1, 1, 2, 1, 2, 2]
+                [0, 0, 0, 0, 0, 0],
+                [1, 1, 0, 0, 0, 0],
+                [1, 2, 1, 0, 0, 0],
+                [2, 1, 1, 0, 0, 0],
+                [1, 2, 1, 0, 0, 0],
+                [2, 2, 0, 0, 0, 0],
+                [2, 0, 0, 0, 0, 0]
             ]))  # Double threat
         ]
 
         # (Results) Plot Q-values
         action_labels = ["A1", "A2", "A3", "A4", "A5", "A6", "A7"]
-        for i, (player_id, grid) in demos:
-            q_values = policy_dqn(self.transform_grid_to_dqn_input(grid, player_id, (2 if player_id == 1 else 1)))  # Retrieve Q values
+        for i, (player_id, grid) in enumerate(demos):
+            with torch.no_grad():
+                q_values = policy_dqn(self.transform_grid_to_dqn_input(grid, player_id, (2 if player_id == 1 else 1)))  # Retrieve Q values
 
             plt.figure(figsize=(8,2))
             sns.heatmap(
@@ -387,8 +390,7 @@ class Connect4DQL():
             plt.savefig(f"{self.training_folder}q_values_state_{i}.png", dpi=300)
             plt.close()
 
-    def transform_grid_to_dqn_input(self, game: Game, own_id: int, opp_id: int):
-        grid = game.get_grid()
+    def transform_grid_to_dqn_input(self, grid: np.ndarray, own_id: int, opp_id: int):
         own_discs = (grid == own_id).astype(np.float32)
         opp_discs = (grid == opp_id).astype(np.float32)
         
@@ -438,7 +440,7 @@ class Connect4DQL():
             target_q = target_dqn(dqn_input)
 
             # Update target Q for the taken action (with the computed Bellman target)
-            target_q[action] = target
+            target_q[0, action] = target  # in batch 0
             target_q_list.append(target_q)
 
         # Compute loss for the sample
