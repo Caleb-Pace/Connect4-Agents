@@ -1,4 +1,4 @@
-import random, torch, os
+import math, random, torch, os
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
@@ -8,6 +8,7 @@ from agents.agent_base import AgentBase
 from collections import deque
 from datetime import datetime, timedelta  # TODO: Remove unused
 from game import Game
+
 
 class DQN(nn.Module):
     def __init__(self, h1_size: int, h2_size: int):
@@ -65,6 +66,12 @@ class Connect4DQL():
         self.checkpoint_rate = 1000  # How many episodes before creating a model checkpoint (saving the policy DQN)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print("Using device:", self.device)  # TODO: Remove, for debugging
+
+        # Epsilon decay variables
+        self.EPS_START = 1.0   # Maximum
+        self.EPS_END   = 0.05  # Minimum
+        self.EPS_DECAY = 0.05  # Decay rate
+        self.steps_done = 0
 
         # Game variables
         self.player_id   = 0  # Initialised later
@@ -145,7 +152,7 @@ class Connect4DQL():
         loss_values = []
 
         # Initialise epsilon for epsilon-greedy exploration
-        epsilon = 1.0  # Random action percentage
+        epsilon = self.EPS_START                   # Random action percentage
         epsilon_history = np.zeros(episode_count)  # (Data) For plotting epsilon
 
         # Track actions/steps/moves for network syncing
@@ -246,7 +253,7 @@ class Connect4DQL():
                 loss_values.append(self.optimise(sample, policy_dqn, target_dqn))
                 
                 # Epsilon decay (Action choice strategy)
-                epsilon = max(((epsilon - 1) / episode_count), 0)
+                epsilon = self.EPS_END + (self.EPS_START - self.EPS_END) * math.exp(-1 * self.steps_done / self.EPS_DECAY)
 
                 # Sync networks
                 if unsynced_actions >= self.sync_rate:
@@ -331,6 +338,7 @@ class Connect4DQL():
         plt.title("Epsilon Decay over Episodes")
         plt.xlabel("Episode")
         plt.ylabel("Epsilon")
+        plt.ylim(0, 1.1)
         plt.legend()
         plt.grid(True)
         plt.savefig(f"{self.training_folder}epsilon_decay.png", dpi=300)
