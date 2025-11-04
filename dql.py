@@ -249,6 +249,7 @@ class Connect4DQL():
 
             # Epsilon decay (Action choice strategy)
             epsilon = self.EPS_END + (self.EPS_START - self.EPS_END) * math.exp(-self.steps_done / self.EPS_DECAY)
+            self.steps_done += 1
 
             # Only improve network if there is enough experience and at least 1 win
             if (len(memory) > self.sample_size) and (np.sum(episode_wins) > 0):
