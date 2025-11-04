@@ -71,7 +71,7 @@ class Connect4DQL():
         # Epsilon decay variables
         self.EPS_START = 1.0   # Maximum
         self.EPS_END   = 0.01  # Minimum
-        self.EPS_DECAY = 1000  # Number of steps to decay over
+        self.EPS_DECAY = 1000  # Number of steps to decay over (Updated later)
 
         # Game variables
         self.player_id   = 0  # Initialised later
@@ -152,6 +152,7 @@ class Connect4DQL():
         loss_values = []
 
         # Initialise epsilon for epsilon-greedy exploration
+        self.EPS_DECAY = episode_count / 6         # Scale decay to episode count
         epsilon = self.EPS_START                   # Random action percentage
         epsilon_history = np.zeros(episode_count)  # (Data) For plotting epsilon
 
