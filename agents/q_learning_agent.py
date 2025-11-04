@@ -9,7 +9,8 @@ class QLearningAgent(AgentBase):
 
         # Load learned policy
         self.policy_dqn = DQN(hidden1_size, hidden2_size)
-        Connect4DQL.import_model(self.policy_dqn, model_file)
+        connect4_dql = Connect4DQL()
+        connect4_dql.import_model(self.policy_dqn, model_file)
         self.policy_dqn.eval()  # Set model to evaluation mode
 
     def move(self, g: Game):
