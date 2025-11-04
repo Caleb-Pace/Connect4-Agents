@@ -30,10 +30,10 @@ class Game:
             for c in range(COL_COUNT):
                 row_str += symbols.get(self.grid[c][r]) + " "
 
-            s += (row_str + "|")
+            s += (row_str + "|\n")
         
         # Footer
-        s += ("~~" + ('-'.join('-' * COL_COUNT)) + "~~")
+        s += ("~~" + ('-'.join('-' * COL_COUNT)) + "~~\n")
 
         # Winner
         if include_winner and self.is_game_over:
@@ -44,7 +44,7 @@ class Game:
             else:
                 s += "Tie!"
 
-        return s
+        return s + "\n"
 
     def get_has_finished(self) -> bool:
         return self.is_game_over
@@ -60,7 +60,7 @@ class Game:
                 sys.stdout.flush()
 
         # Print grid
-        print(self.grid_to_string(self.grid))
+        print(self.grid_to_string())
 
     def try_drop_disc(self, col_num: int) -> bool:
         """Attempt to drop disc; Returns True if sucessful."""
