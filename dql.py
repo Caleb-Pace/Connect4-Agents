@@ -69,9 +69,8 @@ class Connect4DQL():
 
         # Epsilon decay variables
         self.EPS_START = 1.0   # Maximum
-        self.EPS_END   = 0.05  # Minimum
-        self.EPS_DECAY = 2000  # Number of steps to decay over
-        self.steps_done = 0
+        self.EPS_END   = 0.01  # Minimum
+        self.EPS_DECAY = 1000  # Number of steps to decay over
 
         # Game variables
         self.player_id   = 0  # Initialised later
@@ -154,7 +153,6 @@ class Connect4DQL():
         # Initialise epsilon for epsilon-greedy exploration
         epsilon = self.EPS_START                   # Random action percentage
         epsilon_history = np.zeros(episode_count)  # (Data) For plotting epsilon
-        wins_since_last_decay = 0
 
         # Track actions/steps/moves for network syncing
         unsynced_actions = 0
@@ -248,8 +246,7 @@ class Connect4DQL():
             epsilon_history[i] = epsilon
 
             # Epsilon decay (Action choice strategy)
-            epsilon = self.EPS_END + (self.EPS_START - self.EPS_END) * math.exp(-self.steps_done / self.EPS_DECAY)
-            self.steps_done += 1
+            epsilon = self.EPS_END + (self.EPS_START - self.EPS_END) * math.exp(-i / self.EPS_DECAY)
 
             # Only improve network if there is enough experience and at least 1 win
             if (len(memory) > self.sample_size) and (np.sum(episode_wins) > 0):
