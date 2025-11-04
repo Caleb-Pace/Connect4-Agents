@@ -9,9 +9,9 @@ from dql import Connect4DQL
 def main():
     # play()
 
-    # train_models()
+    train_models()
 
-    test_model(f"training/full_model/model checkpoints/" + "e2000" + ".pt", 64, 128)
+    # test_model(f"training/full_model/model checkpoints/" + "e2000" + ".pt", 64, 128)
 
     print(f"[{datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-2]}] Jobs complete!")
 
@@ -26,12 +26,12 @@ def train_models():
     connect4_dql = Connect4DQL()
 
     # Full convergence
-    episodes = 15_000
+    episodes = 100_000
     print(f"[{datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-2]}] Training model to full convergence (over {episodes} episodes)")
     connect4_dql.train(episodes, opp_agent)
 
     # Hyperparameter sweep
-    episodes = 2_000
+    episodes = 10_000
     parameter_set = 0
     for gamma in gammas:
         for batch_size in batch_sizes:
