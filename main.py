@@ -24,12 +24,12 @@ def train_models():
     connect4_dql = Connect4DQL()
 
     # Full convergence
-    episodes = 100_000
+    episodes = 15_000
     print(f"[{datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-2]}] Training model to full convergence (over {episodes} episodes)")
     connect4_dql.train(episodes, opp_agent)
 
     # Hyperparameter sweep
-    episodes = 10_000
+    episodes = 2_000
     parameter_set = 0
     for gamma in gammas:
         for batch_size in batch_sizes:
