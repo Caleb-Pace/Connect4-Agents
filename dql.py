@@ -1,10 +1,12 @@
 import random, torch, os
+import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.nn.functional as F  # TODO: Remove unused
 from agents.agent_base import AgentBase
 from collections import deque
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta  # TODO: Remove unused
 from game import Game
 
 class DQN(nn.Module):
@@ -128,7 +130,7 @@ class Connect4DQL():
 
         # Track episode rewards
         episode_wins    = np.zeros(episode_count)  # For optimisation check
-        episode_rewards = np.zeros(episode_count)  # (Data) For plotting win rate
+        episode_rewards = np.zeros(episode_count)  # (Data) For win rate
         
         # (Data) Track actions to win
         actions_to_win = []
@@ -270,6 +272,115 @@ class Connect4DQL():
             file.write(f" Tie rate: {episode_rewards[-recent_window:].count(self.TIE_REWARD) / recent_window}\n")
 
             file.write(f"Training time elapsed: {format_duration(duration)}\n")
+
+        # (Results) Plot rolling Win rate
+        bin_size = 100
+        num_bins = episode_count // bin_size
+        binned_win_rate = [
+            np.mean(episode_wins[i*bin_size:(i+1)*bin_size]) * 100
+            for i in range(num_bins)
+        ]
+        bin_labels = [(i+1)*bin_size for i in range(num_bins)]
+        plt.figure(figsize=(10,4))
+        plt.plot(bin_labels, binned_win_rate, marker='o', color="green", label="Win Rate (%)")
+        plt.title(f"Win Rate per {bin_size} Episodes")
+        plt.xlabel("Episode")
+        plt.ylabel("Win Rate (%)")
+        plt.ylim(0, 100)
+        plt.legend()
+        plt.grid(True)
+        plt.savefig("win_rate.png", dpi=300)
+        plt.close()
+
+        # (Results) Plot TD/DQN loss
+        plt.figure(figsize=(10,4))
+        plt.plot(loss_values, color="red", label="TD Loss")
+        plt.title("TD Loss over Optimization Steps")
+        plt.xlabel("Step")
+        plt.ylabel("TD Loss")
+        plt.legend()
+        plt.grid(True)
+        plt.savefig("td_loss.png", dpi=300)
+        plt.close()
+
+        # (Results) Plot Moves to win
+        window = 10
+        if len(actions_to_win) >= window:
+            actions_ma = np.convolve(actions_to_win, np.ones(window)/window, mode="valid")
+        else:
+            actions_ma = actions_to_win  # Not enough wins for rolling average
+        plt.figure(figsize=(10,4))
+        plt.plot(actions_to_win, alpha=0.5, label="Moves per Win")
+        plt.plot(range(window-1, len(actions_to_win)), actions_ma, color="blue", label=f"{window}-Episode MA")
+        plt.title("Moves per Win with Moving Average")
+        plt.xlabel("Episode")
+        plt.ylabel("Moves")
+        plt.legend()
+        plt.grid(True)
+        plt.savefig("moves_per_win.png", dpi=300)
+        plt.close()
+
+        # (Results) Plot Epsilon decay
+        plt.figure(figsize=(10,4))
+        plt.plot(epsilon_history, color="purple", label="Epsilon")
+        plt.title("Epsilon Decay over Episodes")
+        plt.xlabel("Episode")
+        plt.ylabel("Epsilon")
+        plt.legend()
+        plt.grid(True)
+        plt.savefig("epsilon_decay.png", dpi=300)
+        plt.close()
+
+        # (Data) Define game states
+        demos = [
+            (1, np.zeros()),  # Empty grid (Shows column preference)
+            (1, np.array([
+                [0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0],
+                [1, 1, 0, 0, 2, 2, 0]
+            ])),  # P1 - Offense or Defense
+            (2, np.array([
+                [0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0],
+                [1, 1, 1, 0, 2, 2, 0]
+            ])),  # P2 - Offense or Defense
+            (2, np.array([
+                [0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 1, 1, 1, 0, 0],
+                [0, 2, 2, 2, 1, 1, 0],
+                [0, 1, 2, 1, 2, 2, 0],
+                [0, 1, 1, 2, 1, 2, 2]
+            ]))  # Double threat
+        ]
+
+        # (Results) Plot Q-values
+        action_labels = ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7']
+        for i, (player_id, grid) in demos:
+            q_values = policy_dqn(self.transform_grid_to_dqn_input(grid, player_id, (2 if player_id == 1 else 1)))  # Retrieve Q values
+
+            plt.figure(figsize=(8,2))
+            sns.heatmap(
+                q_values,
+                annot=True,
+                fmt=".2f",
+                cmap='viridis',
+                xticklabels=action_labels,
+                yticklabels=False,
+                cbar=True
+            )
+            plt.title(f'Q-values for State {i}')
+            plt.xlabel('Actions')
+            plt.ylabel('State')
+            plt.tight_layout()
+            plt.savefig(f'q_values_state_{i}.png', dpi=300)
+            plt.close()
 
     def transform_grid_to_dqn_input(self, game: Game, own_id: int, opp_id: int):
         grid = game.get_grid()
