@@ -9,11 +9,12 @@ from dql import Connect4DQL
 
 def main():
     # export_demos()
-    # play()
+    play()
 
-    train_models()
+    # train_models()
 
     # test_model(f"training/full_model/model checkpoints/" + "e2000" + ".pt", 64, 128)
+    # test_model(f"training/full_model/model checkpoints/" + "model" + ".pt", 64, 128)
 
     print(f"[{datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-2]}] Jobs complete!")
 
@@ -104,7 +105,7 @@ def play():
 
     # Create agents
     agent1 = HeuristicAgent(1)
-    agent2 = HeuristicAgent(2)
+    agent2 = QLearningAgent(2, "training/full_model/model checkpoints/model.pt", 64, 128)
 
     # Run game
     while not g.get_has_finished():
