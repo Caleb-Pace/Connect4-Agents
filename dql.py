@@ -51,11 +51,11 @@ class ReplayMemory():
 class Connect4DQL():
     def __init__(self):
         # Hyperparameters
-        self.learning_rate = 0.001       # (Alpha)
-        self.reward_discount_rate = 0.9  # (Gamma)
-        self.sync_rate = 30              # How many actions/steps/moves before syncing target to policy network
-        self.replay_mem_size = 1000      # How many past experiences to store
-        self.sample_size = 32            # How many memories to sample
+        self.learning_rate = 0.001         # (Alpha)
+        self.reward_discount_factor = 0.9  # (Gamma)
+        self.sync_rate = 30                # How many actions/steps/moves before syncing target to policy network
+        self.replay_mem_size = 1000        # How many past experiences to store
+        self.sample_size = 32              # How many memories to sample
 
         # Neural Network options
         self.loss_func = nn.MSELoss()
@@ -78,7 +78,7 @@ class Connect4DQL():
         self.training_folder = f"training/full_model/"
 
     def update_hyperparameters(self, gamma: float, batch_size: int, hidden1_size: int, hidden2_size: int):
-        self.reward_discount_rate = gamma
+        self.reward_discount_factor = gamma
 
         self.sample_size = batch_size
 
@@ -86,7 +86,7 @@ class Connect4DQL():
         self.hidden2_size = hidden2_size
 
         # Data & Results
-        self.training_folder = f"training/g{self.reward_discount_rate}_b{self.sample_size}_h{self.hidden1_size}-{self.hidden2_size}_model/"
+        self.training_folder = f"training/g{self.reward_discount_factor}_b{self.sample_size}_h{self.hidden1_size}-{self.hidden2_size}_model/"
 
     # Adapted from: https://github.com/johnnycode8/gym_solutions/blob/main/frozen_lake_dql.py#L54
     def train(self, episode_count: int, opponent_agent: AgentBase):
@@ -105,13 +105,18 @@ class Connect4DQL():
         if not os.path.exists(self.training_folder):
             os.makedirs(self.training_folder)
 
+        # (Data) Create checkpoints folder
+        checkpoints_folder = f"{self.training_folder}model checkpoints/"
+        if not os.path.exists(checkpoints_folder):
+            os.makedirs(checkpoints_folder)
+
         # (Data) Compile data file - Settings
         with open(f"{self.training_folder}data.txt", "w") as file:
             file.write(f"{episode_count} episodes\n")
             
             file.write("\n< Hyperparameters >\n")
             file.write(f"Learning rate (alpha): {self.learning_rate}\n")
-            file.write(f"Learning rate (Gamma): {self.reward_discount_rate}\n")
+            file.write(f"Learning rate (Gamma): {self.reward_discount_factor}\n")
             file.write(f"            Sync rate: {self.sync_rate}\n")
             file.write(f"   Replay memory size: {self.replay_mem_size}\n")
             file.write(f"           Batch size: {self.sample_size}\n")
@@ -249,7 +254,7 @@ class Connect4DQL():
 
             # Model checkpoint
             if (i % self.checkpoint_rate == 0) and (i > 0) and (i < (episode_count - self.checkpoint_rate)):
-                self.export_model(policy_dqn, f"{self.training_folder}chkpt_e{episode_count}.pt")
+                self.export_model(policy_dqn, f"{checkpoints_folder}e{episode_count}.pt")
 
         # (Data) Track training time
         end_time = datetime.now()
@@ -422,7 +427,7 @@ class Connect4DQL():
                 # Calculate target Q value 
                 with torch.no_grad():
                     target = torch.FloatTensor(
-                        reward + (self.reward_discount_rate * target_dqn(self.transform_grid_to_dqn_input(new_grid, player_id, opponent_id)).max())
+                        reward + (self.reward_discount_factor * target_dqn(self.transform_grid_to_dqn_input(new_grid, player_id, opponent_id)).max())
                     )
 
             dqn_input = self.transform_grid_to_dqn_input(grid, player_id, opponent_id)
@@ -529,7 +534,7 @@ class Connect4DQL():
             # (Data) Save match examples
             if (i % match_example_frequency == 0) and (i > 0):
                 with open(f"{self.testing_folder}", "a") as file:
-                    file.write(f"{connect4.grid_to_string()}\n\n")
+                    file.write(f"{connect4.grid_to_string()}\n")
 
         # (Results) Plot game results
         wins = np.sum(episode_rewards == self.WIN_REWARD)
