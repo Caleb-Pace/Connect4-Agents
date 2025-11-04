@@ -386,9 +386,12 @@ class Connect4DQL():
             with torch.no_grad():
                 q_values = policy_dqn(self.transform_grid_to_dqn_input(grid, player_id, (2 if player_id == 1 else 1)))  # Retrieve Q values
 
+                # Move tensor to CPU and convert to numpy
+                q_values_np = q_values.cpu().numpy()
+
             plt.figure(figsize=(8,2))
             sns.heatmap(
-                q_values,
+                q_values_np,
                 annot=True,
                 fmt=".2f",
                 cmap="viridis",
