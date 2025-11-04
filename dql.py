@@ -289,7 +289,7 @@ class Connect4DQL():
         plt.ylim(0, 100)
         plt.legend()
         plt.grid(True)
-        plt.savefig("win_rate.png", dpi=300)
+        plt.savefig(f"{self.training_folder}win_rate.png", dpi=300)
         plt.close()
 
         # (Results) Plot TD/DQN loss
@@ -300,7 +300,7 @@ class Connect4DQL():
         plt.ylabel("TD Loss")
         plt.legend()
         plt.grid(True)
-        plt.savefig("td_loss.png", dpi=300)
+        plt.savefig(f"{self.training_folder}td_loss.png", dpi=300)
         plt.close()
 
         # (Results) Plot Moves to win
@@ -317,7 +317,7 @@ class Connect4DQL():
         plt.ylabel("Moves")
         plt.legend()
         plt.grid(True)
-        plt.savefig("moves_per_win.png", dpi=300)
+        plt.savefig(f"{self.training_folder}moves_per_win.png", dpi=300)
         plt.close()
 
         # (Results) Plot Epsilon decay
@@ -328,7 +328,7 @@ class Connect4DQL():
         plt.ylabel("Epsilon")
         plt.legend()
         plt.grid(True)
-        plt.savefig("epsilon_decay.png", dpi=300)
+        plt.savefig(f"{self.training_folder}epsilon_decay.png", dpi=300)
         plt.close()
 
         # (Data) Define game states
@@ -361,7 +361,7 @@ class Connect4DQL():
         ]
 
         # (Results) Plot Q-values
-        action_labels = ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7']
+        action_labels = ["A1", "A2", "A3", "A4", "A5", "A6", "A7"]
         for i, (player_id, grid) in demos:
             q_values = policy_dqn(self.transform_grid_to_dqn_input(grid, player_id, (2 if player_id == 1 else 1)))  # Retrieve Q values
 
@@ -370,16 +370,16 @@ class Connect4DQL():
                 q_values,
                 annot=True,
                 fmt=".2f",
-                cmap='viridis',
+                cmap="viridis",
                 xticklabels=action_labels,
                 yticklabels=False,
                 cbar=True
             )
-            plt.title(f'Q-values for State {i}')
-            plt.xlabel('Actions')
-            plt.ylabel('State')
+            plt.title(f"Q-values for State {i}")
+            plt.xlabel("Actions")
+            plt.ylabel("State")
             plt.tight_layout()
-            plt.savefig(f'q_values_state_{i}.png', dpi=300)
+            plt.savefig(f"{self.training_folder}q_values_state_{i}.png", dpi=300)
             plt.close()
 
     def transform_grid_to_dqn_input(self, game: Game, own_id: int, opp_id: int):
