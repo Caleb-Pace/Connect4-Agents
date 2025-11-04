@@ -55,7 +55,7 @@ class Game:
     def print_grid(self, redraw: bool = False):
         # Reposition cursor
         if redraw:
-            for _ in range(ROW_COUNT + 1):
+            for _ in range(ROW_COUNT + 3):
                 sys.stdout.write("\033[F")  # ANSI code for cursor up
                 sys.stdout.flush()
 
