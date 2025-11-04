@@ -15,7 +15,7 @@ class QLearningAgent(AgentBase):
     def move(self, g: Game):
         # Best action (according to NN)
         with torch.no_grad():
-            q_values = self.policy_dqn(Connect4DQL.transform_grid_to_dqn_input(g))  # Retrieve Q values
+            q_values = self.policy_dqn(Connect4DQL.transform_grid_to_dqn_input(g, self.player_id, self.opponent_id))  # Retrieve Q values
 
             # Select the column with the highest Q value
             for _ in range(7):
