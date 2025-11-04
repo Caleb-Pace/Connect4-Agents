@@ -15,6 +15,28 @@ class Game:
     def set_grid(self, grid: np.ndarray):
         self.grid = grid
 
+    def grid_to_string(self, grid: np.ndarray) -> str:
+        symbols = {
+            0: ".",
+            1: "X",
+            2: "O"
+        }
+
+        s = ""
+
+        # Grid content
+        for r in range((ROW_COUNT - 1), -1, -1):
+            row_str = "| "
+            for c in range(COL_COUNT):
+                row_str += symbols.get(grid[c][r]) + " "
+
+            s += (row_str + "|")
+        
+        # Footer
+        s += ("~~" + ('-'.join('-' * COL_COUNT)) + "~~")
+
+        return s
+
     def get_has_finished(self) -> bool:
         return self.is_game_over
 
@@ -22,12 +44,6 @@ class Game:
         return self.total_move_count
 
     def print_grid(self, redraw: bool = False):
-        symbols = {
-            0: ".",
-            1: "X",
-            2: "O"
-        }
-
         # Reposition cursor
         if redraw:
             for _ in range(ROW_COUNT + 1):
@@ -35,15 +51,7 @@ class Game:
                 sys.stdout.flush()
 
         # Print grid
-        for r in range((ROW_COUNT - 1), -1, -1):
-            row_str = "| "
-            for c in range(COL_COUNT):
-                row_str += symbols.get(self.grid[c][r]) + " "
-
-            print(row_str + "|")
-        
-        # Print footer
-        print("~~" + ('-'.join('-' * COL_COUNT)) + "~~")
+        print(self.grid_to_string(self.grid))
 
         # Winner
         if self.is_game_over:
