@@ -483,7 +483,10 @@ class Connect4DQL():
         # Data & Results
         model_name = os.path.splitext(os.path.basename(model_file))[0]
         self.testing_folder  = f"testing/dql_vs_{opponent_agent.__class__.__name__}/{model_name}/"
+
+        # (Data) Save examples
         match_example_frequency = episode_count // 5
+        offset = 1
 
         # (Data) Create testing folder
         if not os.path.exists(self.testing_folder):
@@ -557,7 +560,8 @@ class Connect4DQL():
             episode_rewards[i] = reward
 
             # (Data) Save match examples
-            if (i % match_example_frequency == 0) and (i > 0):
+            offset *= -1
+            if ((i + offset + 1) % match_example_frequency == 0) and (i > 0):
                 with open(f"{self.testing_folder}examples.txt", "a") as file:
                     file.write(f"{connect4.grid_to_string()}\n")
 
