@@ -68,10 +68,10 @@ class Connect4DQL():
         print("Using device:", self.device)  # TODO: Remove, for debugging
 
         # Epsilon decay variables
-        self.EPS_START = 1.0        # Maximum
-        self.EPS_END   = 0.05       # Minimum
-        self.EPS_DECAY_STEP = 0.05  # Decay amount
-        self.WIN_THRESHOLD = 1      # Decay every 5 wins
+        self.EPS_START = 1.0   # Maximum
+        self.EPS_END   = 0.05  # Minimum
+        self.EPS_DECAY = 2000  # Number of steps to decay over
+        self.steps_done = 0
 
         # Game variables
         self.player_id   = 0  # Initialised later
@@ -247,17 +247,14 @@ class Connect4DQL():
             # (Data) Record epsilon value
             epsilon_history[i] = epsilon
 
+            # Epsilon decay (Action choice strategy)
+            epsilon = self.EPS_END + (self.EPS_START - self.EPS_END) * math.exp(-self.steps_done / self.EPS_DECAY)
+
             # Only improve network if there is enough experience and at least 1 win
             if (len(memory) > self.sample_size) and (np.sum(episode_wins) > 0):
                 # Optimise network
                 sample = memory.sample(self.sample_size)
                 loss_values.append(self.optimise(sample, policy_dqn, target_dqn))
-                
-                # Epsilon decay (Action choice strategy)
-                print(f"{(wins_since_last_decay >= self.WIN_THRESHOLD)}    ({wins_since_last_decay} >= {self.WIN_THRESHOLD}) (e: {epsilon})")
-                if wins_since_last_decay >= self.WIN_THRESHOLD:
-                    epsilon = max(self.EPS_END, (epsilon - self.EPS_DECAY_STEP))
-                    wins_since_last_decay = 0
 
                 # Sync networks
                 if unsynced_actions >= self.sync_rate:
