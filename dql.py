@@ -64,7 +64,8 @@ class Connect4DQL():
         self.hidden1_size = 64       # Number of neurons in first hidden layer, (arbitrary)
         self.hidden2_size = 128      # Number of neurons in second hidden layer, (double to capture deeper patterns)
         self.checkpoint_rate = 1000  # How many episodes before creating a model checkpoint (saving the policy DQN)
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = "cpu"
+        # self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print("Using device:", self.device)  # TODO: Remove, for debugging
 
         # Epsilon decay variables
