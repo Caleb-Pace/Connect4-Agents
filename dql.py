@@ -68,10 +68,10 @@ class Connect4DQL():
         print("Using device:", self.device)  # TODO: Remove, for debugging
 
         # Epsilon decay variables
-        self.EPS_START = 1.0   # Maximum
-        self.EPS_END   = 0.05  # Minimum
-        self.EPS_DECAY = 0.05  # Decay rate
-        self.steps_done = 0
+        self.EPS_START = 1.0        # Maximum
+        self.EPS_END   = 0.05       # Minimum
+        self.EPS_DECAY_STEP = 0.05  # Decay amount
+        self.WIN_THRESHOLD = 5      # Decay every 5 wins
 
         # Game variables
         self.player_id   = 0  # Initialised later
@@ -154,6 +154,7 @@ class Connect4DQL():
         # Initialise epsilon for epsilon-greedy exploration
         epsilon = self.EPS_START                   # Random action percentage
         epsilon_history = np.zeros(episode_count)  # (Data) For plotting epsilon
+        wins_since_last_decay = 0
 
         # Track actions/steps/moves for network syncing
         unsynced_actions = 0
@@ -243,7 +244,7 @@ class Connect4DQL():
             # Record reward
             episode_rewards[i] = reward
 
-            # Record epsilon value
+            # (Data) Record epsilon value
             epsilon_history[i] = epsilon
 
             # Only improve network if there is enough experience and at least 1 win
@@ -253,7 +254,9 @@ class Connect4DQL():
                 loss_values.append(self.optimise(sample, policy_dqn, target_dqn))
                 
                 # Epsilon decay (Action choice strategy)
-                epsilon = self.EPS_END + (self.EPS_START - self.EPS_END) * math.exp(-1 * self.steps_done / self.EPS_DECAY)
+                if wins_since_last_decay >= self.WIN_THRESHOLD:
+                    epsilon = max(self.EPS_END, (epsilon - self.EPS_DECAY_STEP))
+                    wins_since_last_decay = 0
 
                 # Sync networks
                 if unsynced_actions >= self.sync_rate:
@@ -262,7 +265,7 @@ class Connect4DQL():
 
             # Model checkpoint
             if (i % self.checkpoint_rate == 0) and (i > 0) and (i < (episode_count - self.checkpoint_rate)):
-                self.export_model(policy_dqn, f"{checkpoints_folder}e{episode_count}.pt")
+                self.export_model(policy_dqn, f"{checkpoints_folder}e{i}.pt")
 
         # (Data) Track training time
         end_time = datetime.now()
