@@ -3,6 +3,7 @@ AI Project for COMP813 (Artificial Intelligence)<br/>
 Comparing Heuristic vs Q-learning agents in Connect Four.
 
 ## How to use
+***Note:** Requires [python 3.11](https://www.python.org/downloads/) or higher*
 
 ### Create virtual environment
 *(Ensure you are in the projects root directory)*<br/>
