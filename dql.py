@@ -71,7 +71,7 @@ class Connect4DQL():
         self.EPS_START = 1.0        # Maximum
         self.EPS_END   = 0.05       # Minimum
         self.EPS_DECAY_STEP = 0.05  # Decay amount
-        self.WIN_THRESHOLD = 5      # Decay every 5 wins
+        self.WIN_THRESHOLD = 1      # Decay every 5 wins
 
         # Game variables
         self.player_id   = 0  # Initialised later
@@ -254,6 +254,7 @@ class Connect4DQL():
                 loss_values.append(self.optimise(sample, policy_dqn, target_dqn))
                 
                 # Epsilon decay (Action choice strategy)
+                print(f"{(wins_since_last_decay >= self.WIN_THRESHOLD)}    ({wins_since_last_decay} >= {self.WIN_THRESHOLD}) (e: {epsilon})")
                 if wins_since_last_decay >= self.WIN_THRESHOLD:
                     epsilon = max(self.EPS_END, (epsilon - self.EPS_DECAY_STEP))
                     wins_since_last_decay = 0
@@ -264,7 +265,7 @@ class Connect4DQL():
                     unsynced_actions = 0
 
             # Model checkpoint
-            if (i % self.checkpoint_rate == 0) and (i > 0) and (i < (episode_count - self.checkpoint_rate)):
+            if (i % self.checkpoint_rate == 0) and (i > 0) and (i < episode_count):
                 self.export_model(policy_dqn, f"{checkpoints_folder}e{i}.pt")
 
         # (Data) Track training time
