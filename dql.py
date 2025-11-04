@@ -60,10 +60,11 @@ class Connect4DQL():
         # Neural Network options
         self.loss_func = nn.MSELoss()
         self.optimiser = None
-        self.device = "cpu"
         self.hidden1_size = 64       # Number of neurons in first hidden layer, (arbitrary)
         self.hidden2_size = 128      # Number of neurons in second hidden layer, (double to capture deeper patterns)
         self.checkpoint_rate = 1000  # How many episodes before creating a model checkpoint (saving the policy DQN)
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print("Using device:", self.device)  # TODO: Remove, for debugging
 
         # Game variables
         self.player_id   = 0  # Initialised later
@@ -94,8 +95,8 @@ class Connect4DQL():
         memory = ReplayMemory(self.replay_mem_size)
 
         # Create networks
-        policy_dqn = DQN(self.hidden1_size, self.hidden2_size)
-        target_dqn = DQN(self.hidden1_size, self.hidden2_size)
+        policy_dqn = DQN(self.hidden1_size, self.hidden2_size).to(self.device)
+        target_dqn = DQN(self.hidden1_size, self.hidden2_size).to(self.device)
         target_dqn.load_state_dict(policy_dqn.state_dict())  # Copy network weights (Policy -> Target)
 
         # Policy network optimiser
@@ -424,12 +425,18 @@ class Connect4DQL():
             # Get target Q value
             if has_finished:
                 # Terminal state: Q-target equals the immediate reward (no future discounted Q)
-                target = torch.FloatTensor([reward])
+                target = torch.tensor([reward], dtype=torch.float32, device=self.device)
             else:
                 # Calculate target Q value 
                 with torch.no_grad():
-                    target = torch.FloatTensor(
-                        reward + (self.reward_discount_factor * target_dqn(self.transform_grid_to_dqn_input(new_grid, player_id, opponent_id)).max())
+                    next_q = target_dqn(
+                        self.transform_grid_to_dqn_input(new_grid, player_id, opponent_id)
+                    ).max()
+
+                    target = torch.tensor(
+                        [reward + (self.reward_discount_factor * next_q)],
+                        dtype=torch.float32,
+                        device=self.device
                     )
 
             dqn_input = self.transform_grid_to_dqn_input(grid, player_id, opponent_id)
@@ -457,7 +464,7 @@ class Connect4DQL():
     # Adapted from: https://github.com/johnnycode8/gym_solutions/blob/main/frozen_lake_dql.py#L208
     def test(self, model_file, hidden1_size: int, hidden2_size: int, episode_count: int, opponent_agent: AgentBase):
         # Load learned policy
-        policy_dqn = DQN(hidden1_size, hidden2_size)
+        policy_dqn = DQN(hidden1_size, hidden2_size).to(self.device)
         self.import_model(policy_dqn, model_file)
         policy_dqn.eval()  # Set model to evaluation mode
         
