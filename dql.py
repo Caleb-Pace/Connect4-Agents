@@ -304,7 +304,7 @@ class Connect4DQL():
         plt.close()
 
         # (Results) Plot Moves to win
-        window = 10
+        window = 10  # Episode window
         if len(actions_to_win) >= window:
             actions_ma = np.convolve(actions_to_win, np.ones(window)/window, mode="valid")
         else:
@@ -457,9 +457,11 @@ class Connect4DQL():
         # Data & Results
         model_name = os.path.splitext(model_file)
         self.testing_folder  = f"testing/dql_vs_{opponent_agent.__class__.__name__}/{model_name}/"
-        
+        match_example_frequency = episode_count // 5
+
         # (Data) Track episode rewards
-        episode_rewards = np.zeros(episode_count)  # (Data) For plotting win rate
+        episode_rewards = np.zeros(episode_count)  # (Data) For game results
+        episode_wins    = np.zeros(episode_count)  # (Data) For plotting wins
         
         # (Data) Track actions to win
         actions_to_win = []
@@ -513,14 +515,70 @@ class Connect4DQL():
 
             # (Data) Record win
             if reward == self.WIN_REWARD:
+                episode_wins[i] = 1
+
                 # Calculate action count
                 total_moves = connect4.get_move_count()
                 if self.player_id == 1:
                     total_moves += 1  # Player 2 hasn't moved yet - Complete the round
                 actions_to_win.append((total_moves // 2))
-
-            # (Data) Record game results
+            
+            # (Data) Record reward
             episode_rewards[i] = reward
+
+            # (Data) Save match examples
+            if (i % match_example_frequency == 0) and (i > 0):
+                with open(f"{self.testing_folder}", "a") as file:
+                    file.write(f"{connect4.grid_to_string()}\n\n")
+
+        # (Results) Plot game results
+        wins = np.sum(episode_rewards == self.WIN_REWARD)
+        ties = np.sum(episode_rewards == self.TIE_REWARD)
+        losses = np.sum(episode_rewards == self.LOSS_REWARD)
+        plt.figure(figsize=(6,4))
+        plt.bar(["Wins", "Ties", "Losses"], [wins, ties, losses], color=["green", "gray", "red"])
+        plt.title("Episode Results Totals")
+        plt.ylabel("Number of Episodes")
+        plt.grid(axis="y", linestyle="--", alpha=0.7)
+        plt.tight_layout()
+        plt.savefig("episode_results_totals.png", dpi=300)
+        plt.show()
+
+        # (Results) Plot rolling Win rate
+        bin_size = 100
+        num_bins = episode_count // bin_size
+        binned_win_rate = [
+            np.mean(episode_wins[i*bin_size:(i+1)*bin_size]) * 100
+            for i in range(num_bins)
+        ]
+        bin_labels = [(i+1)*bin_size for i in range(num_bins)]
+        plt.figure(figsize=(10,4))
+        plt.plot(bin_labels, binned_win_rate, marker='o', color="green", label="Win Rate (%)")
+        plt.title(f"Win Rate per {bin_size} Episodes")
+        plt.xlabel("Episode")
+        plt.ylabel("Win Rate (%)")
+        plt.ylim(0, 100)
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(f"{self.testing_folder}win_rate.png", dpi=300)
+        plt.close()
+
+        # (Results) Plot Moves to win
+        window = 10  # Episode window
+        if len(actions_to_win) >= window:
+            actions_ma = np.convolve(actions_to_win, np.ones(window)/window, mode="valid")
+        else:
+            actions_ma = actions_to_win  # Not enough wins for rolling average
+        plt.figure(figsize=(10,4))
+        plt.plot(actions_to_win, alpha=0.5, label="Moves per Win")
+        plt.plot(range(window-1, len(actions_to_win)), actions_ma, color="blue", label=f"{window}-Episode MA")
+        plt.title("Moves per Win with Moving Average")
+        plt.xlabel("Episode")
+        plt.ylabel("Moves")
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(f"{self.testing_folder}moves_per_win.png", dpi=300)
+        plt.close()
 
     def export_model(self, policy_dqn: DQN, model_file):
         torch.save(policy_dqn.state_dict(), model_file)
